@@ -1,0 +1,456 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isBootstrappedAdminEmail() {
+      return isSignedIn() &&
+             request.auth.token.email_verified == true &&
+             request.auth.token.email == 'ammaralqahwi2026@gmail.com';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        isBootstrappedAdminEmail() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isValidOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isValidStringList(listVal, maxItems) {
+      return listVal is list &&
+             listVal.size() <= maxItems &&
+             (listVal.size() == 0 || listVal[0] is string);
+    }
+
+    // --- Validation Helpers ---
+
+    function isValidAdminRecord(data, docUid) {
+      return data.userId is string && data.userId == docUid &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+             data.role is string && data.role == 'admin' &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidHospitalConfig(data) {
+      return data.hospitalNameEn is string && data.hospitalNameEn.size() >= 2 && data.hospitalNameEn.size() <= 200 &&
+             data.hospitalNameAr is string && data.hospitalNameAr.size() >= 2 && data.hospitalNameAr.size() <= 200 &&
+             data.tagline is string && data.tagline.size() <= 300 &&
+             isValidOptionalString(data, 'logoDataUri', 300000) &&
+             data.updateFrequencyHours is int && data.updateFrequencyHours >= 1 && data.updateFrequencyHours <= 168 &&
+             isValidOptionalString(data, 'unpaywallEmail', 200) &&
+             (!('enabledSources' in data) || isValidStringList(data.enabledSources, 12)) &&
+             data.updatedBy is string && data.updatedBy == request.auth.uid &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidCategory(data) {
+      return data.nameEn is string && data.nameEn.size() >= 2 && data.nameEn.size() <= 160 &&
+             data.nameAr is string && data.nameAr.size() <= 160 &&
+             data.parentTrack is string && (data.parentTrack == 'RESPIRATORY_CARE' || data.parentTrack == 'CRITICAL_CARE') &&
+             isValidOptionalString(data, 'description', 1000) &&
+             data.searchQueryTerms is string && data.searchQueryTerms.size() >= 2 && data.searchQueryTerms.size() <= 400 &&
+             data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 10000 &&
+             data.active is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidEditorialPost(data) {
+      return data.title is string && data.title.size() >= 3 && data.title.size() <= 300 &&
+             isValidOptionalString(data, 'titleAr', 300) &&
+             data.summary is string && data.summary.size() <= 2000 &&
+             data.body is string && data.body.size() <= 20000 &&
+             data.specialty is string && data.specialty.size() <= 160 &&
+             data.contentType is string && (
+               data.contentType == 'EDITORIAL_ANNOUNCEMENT' ||
+               data.contentType == 'RESEARCH_HIGHLIGHT' ||
+               data.contentType == 'CLINICAL_GUIDELINE_UPDATE' ||
+               data.contentType == 'LOCAL_HOSPITAL_PROTOCOL' ||
+               data.contentType == 'FEATURED_RESEARCH'
+             ) &&
+             data.authorName is string && data.authorName.size() <= 160 &&
+             data.hospitalProtocol is bool &&
+             isValidOptionalString(data, 'externalUrl', 500) &&
+             isValidOptionalString(data, 'doi', 150) &&
+             isValidOptionalString(data, 'publicationDate', 40) &&
+             isValidOptionalString(data, 'verifiedDate', 40) &&
+             data.createdBy is string && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidMonitoredArticle(data) {
+      return data.title is string && data.title.size() >= 3 && data.title.size() <= 600 &&
+             data.authors is string && data.authors.size() <= 1000 &&
+             data.journal is string && data.journal.size() <= 300 &&
+             data.publicationDate is string && data.publicationDate.size() <= 50 &&
+             isValidOptionalString(data, 'abstractText', 15000) &&
+             isValidOptionalString(data, 'doi', 200) &&
+             isValidOptionalString(data, 'pmid', 40) &&
+             isValidOptionalString(data, 'publicationType', 120) &&
+             (!('keywords' in data) || isValidStringList(data.keywords, 25)) &&
+             data.sourceDatabase is string && data.sourceDatabase.size() <= 120 &&
+             (!('citationCount' in data) || (data.citationCount is int && data.citationCount >= 0)) &&
+             isValidOptionalString(data, 'publisherUrl', 600) &&
+             data.openAccess is bool &&
+             data.fullTextAvailable is bool &&
+             isValidOptionalString(data, 'pdfUrl', 600) &&
+             data.preprint is bool &&
+             data.retracted is bool &&
+             data.featured is bool &&
+             data.specialtyTrack is string && data.specialtyTrack.size() <= 80 &&
+             isValidOptionalString(data, 'categoryName', 160) &&
+             isValidOptionalString(data, 'retrievedAt', 60) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidGuidelineRecord(data) {
+      return data.title is string && data.title.size() >= 3 && data.title.size() <= 400 &&
+             data.organization is string && data.organization.size() >= 2 && data.organization.size() <= 160 &&
+             data.specialtyTrack is string && (data.specialtyTrack == 'RESPIRATORY_CARE' || data.specialtyTrack == 'CRITICAL_CARE') &&
+             data.topic is string && data.topic.size() <= 200 &&
+             data.publicationYear is int && data.publicationYear >= 1990 && data.publicationYear <= 2100 &&
+             data.latestUpdateDate is string && data.latestUpdateDate.size() <= 60 &&
+             data.lastVerifiedDate is string && data.lastVerifiedDate.size() <= 60 &&
+             data.recommendations is string && data.recommendations.size() <= 15000 &&
+             isValidOptionalString(data, 'evidenceCertainty', 200) &&
+             isValidOptionalString(data, 'previousVersionSummary', 5000) &&
+             isValidOptionalString(data, 'changesSummary', 5000) &&
+             isValidOptionalString(data, 'sourceUrl', 600) &&
+             data.fullTextAvailable is bool &&
+             data.protocolScope is string && (
+               data.protocolScope == 'INTERNATIONAL_GUIDELINE' ||
+               data.protocolScope == 'INSTITUTIONAL_PROTOCOL' ||
+               data.protocolScope == 'EDUCATIONAL_SUMMARY' ||
+               data.protocolScope == 'LOCAL_HOSPITAL_PROTOCOL'
+             ) &&
+             isValidOptionalString(data, 'doi', 200) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.displayName is string && data.displayName.size() <= 160 &&
+             isValidOptionalString(data, 'email', 200) &&
+             isValidOptionalString(data, 'specialty', 160) &&
+             data.language is string && (data.language == 'en' || data.language == 'ar') &&
+             data.themeMode is string && (data.themeMode == 'system' || data.themeMode == 'light' || data.themeMode == 'dark') &&
+             isValidStringList(data.subscribedTopics, 50) &&
+             data.pushEnabled is bool &&
+             data.emailDigestEnabled is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidLibraryItem(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.articleKey is string && data.articleKey.size() >= 1 && data.articleKey.size() <= 200 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 600 &&
+             isValidOptionalString(data, 'authors', 1000) &&
+             isValidOptionalString(data, 'journal', 300) &&
+             isValidOptionalString(data, 'publicationDate', 50) &&
+             isValidOptionalString(data, 'abstractText', 15000) &&
+             isValidOptionalString(data, 'doi', 200) &&
+             isValidOptionalString(data, 'pmid', 40) &&
+             isValidOptionalString(data, 'publicationType', 120) &&
+             isValidOptionalString(data, 'sourceDatabase', 120) &&
+             isValidOptionalString(data, 'publisherUrl', 600) &&
+             isValidOptionalString(data, 'pdfUrl', 600) &&
+             (!('openAccess' in data) || data.openAccess is bool) &&
+             (!('fullTextAvailable' in data) || data.fullTextAvailable is bool) &&
+             (!('preprint' in data) || data.preprint is bool) &&
+             (!('retracted' in data) || data.retracted is bool) &&
+             data.saved is bool &&
+             data.bookmarked is bool &&
+             data.favorite is bool &&
+             data.readingStatus is string && (data.readingStatus == 'UNREAD' || data.readingStatus == 'READING' || data.readingStatus == 'READ') &&
+             isValidOptionalString(data, 'personalNotes', 10000) &&
+             isValidStringList(data.collectionIds, 25) &&
+             isValidOptionalString(data, 'localPdfPath', 500) &&
+             data.lastOpenedMillis is int && data.lastOpenedMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidUserCollection(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             isValidOptionalString(data, 'description', 500) &&
+             isValidOptionalString(data, 'colorHex', 20) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidUserNotification(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 300 &&
+             data.body is string && data.body.size() <= 2000 &&
+             data.notificationType is string && data.notificationType.size() <= 80 &&
+             isValidOptionalString(data, 'articleKey', 200) &&
+             isValidOptionalString(data, 'doi', 200) &&
+             data.read is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidClinicalCaseSession(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.caseTitle is string && data.caseTitle.size() >= 1 && data.caseTitle.size() <= 250 &&
+             data.preliminaryDiagnosis is string && data.preliminaryDiagnosis.size() <= 300 &&
+             data.specialtyTrack is string && data.specialtyTrack.size() <= 80 &&
+             isValidOptionalString(data, 'demographicsSummary', 1000) &&
+             isValidOptionalString(data, 'vitalsSummary', 1500) &&
+             isValidOptionalString(data, 'respiratoryAbgSummary', 2000) &&
+             isValidOptionalString(data, 'labsSummary', 2000) &&
+             isValidOptionalString(data, 'imagingSummary', 2000) &&
+             data.safetyAlertLevel is string && data.safetyAlertLevel.size() <= 40 &&
+             isValidOptionalString(data, 'aiReportSummary', 25000) &&
+             isValidOptionalString(data, 'missingChecklistSummary', 5000) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSavedClinicalTopic(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.topicName is string && data.topicName.size() >= 1 && data.topicName.size() <= 200 &&
+             data.specialtyTrack is string && data.specialtyTrack.size() <= 80 &&
+             data.bookmarked is bool &&
+             data.lastViewedMillis is int && data.lastViewedMillis >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- Collection Match Rules ---
+
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && (isOwner(uid) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(uid) &&
+                       isAdmin() &&
+                       incoming().keys().hasAll(['userId', 'email', 'role', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'email', 'role', 'createdAt']) &&
+                       isValidAdminRecord(incoming(), uid);
+      allow update: if false;
+      allow delete: if isValidId(uid) && isAdmin() && uid != request.auth.uid;
+    }
+
+    match /hospital_config/{configId} {
+      allow get: if isValidId(configId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(configId) &&
+                       isAdmin() &&
+                       incoming().keys().hasAll(['hospitalNameEn', 'hospitalNameAr', 'tagline', 'updateFrequencyHours', 'updatedBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['hospitalNameEn', 'hospitalNameAr', 'tagline', 'logoDataUri', 'updateFrequencyHours', 'unpaywallEmail', 'enabledSources', 'updatedBy', 'createdAt', 'updatedAt']) &&
+                       isValidHospitalConfig(incoming());
+      allow update: if isValidId(configId) &&
+                       isAdmin() &&
+                       isValidHospitalConfig(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['hospitalNameEn', 'hospitalNameAr', 'tagline', 'logoDataUri', 'updateFrequencyHours', 'unpaywallEmail', 'enabledSources', 'updatedBy', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(categoryId) &&
+                       isAdmin() &&
+                       incoming().keys().hasAll(['nameEn', 'nameAr', 'parentTrack', 'searchQueryTerms', 'sortOrder', 'active', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['nameEn', 'nameAr', 'parentTrack', 'description', 'searchQueryTerms', 'sortOrder', 'active', 'createdAt', 'updatedAt']) &&
+                       isValidCategory(incoming());
+      allow update: if isValidId(categoryId) &&
+                       isAdmin() &&
+                       isValidCategory(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['nameEn', 'nameAr', 'parentTrack', 'description', 'searchQueryTerms', 'sortOrder', 'active', 'updatedAt']);
+      allow delete: if isValidId(categoryId) && isAdmin();
+    }
+
+    match /editorial_posts/{postId} {
+      allow get: if isValidId(postId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(postId) &&
+                       isAdmin() &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['title', 'summary', 'body', 'specialty', 'contentType', 'authorName', 'hospitalProtocol', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['title', 'titleAr', 'summary', 'body', 'specialty', 'contentType', 'authorName', 'hospitalProtocol', 'externalUrl', 'doi', 'publicationDate', 'verifiedDate', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidEditorialPost(incoming());
+      allow update: if isValidId(postId) &&
+                       isAdmin() &&
+                       isValidEditorialPost(incoming()) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'titleAr', 'summary', 'body', 'specialty', 'contentType', 'authorName', 'hospitalProtocol', 'externalUrl', 'doi', 'publicationDate', 'verifiedDate', 'updatedAt']);
+      allow delete: if isValidId(postId) && isAdmin();
+    }
+
+    match /monitored_articles/{articleId} {
+      allow get: if isValidId(articleId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(articleId) &&
+                       isAdmin() &&
+                       incoming().keys().hasAll(['title', 'authors', 'journal', 'publicationDate', 'sourceDatabase', 'openAccess', 'fullTextAvailable', 'preprint', 'retracted', 'featured', 'specialtyTrack', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['title', 'authors', 'journal', 'publicationDate', 'abstractText', 'doi', 'pmid', 'publicationType', 'keywords', 'sourceDatabase', 'citationCount', 'publisherUrl', 'openAccess', 'fullTextAvailable', 'pdfUrl', 'preprint', 'retracted', 'featured', 'specialtyTrack', 'categoryName', 'retrievedAt', 'createdAt', 'updatedAt']) &&
+                       isValidMonitoredArticle(incoming());
+      allow update: if isValidId(articleId) &&
+                       isAdmin() &&
+                       isValidMonitoredArticle(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'authors', 'journal', 'publicationDate', 'abstractText', 'doi', 'pmid', 'publicationType', 'keywords', 'sourceDatabase', 'citationCount', 'publisherUrl', 'openAccess', 'fullTextAvailable', 'pdfUrl', 'preprint', 'retracted', 'featured', 'specialtyTrack', 'categoryName', 'retrievedAt', 'updatedAt']);
+      allow delete: if isValidId(articleId) && isAdmin();
+    }
+
+    match /guideline_records/{recordId} {
+      allow get: if isValidId(recordId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(recordId) &&
+                       isAdmin() &&
+                       incoming().keys().hasAll(['title', 'organization', 'specialtyTrack', 'topic', 'publicationYear', 'latestUpdateDate', 'lastVerifiedDate', 'recommendations', 'fullTextAvailable', 'protocolScope', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['title', 'organization', 'specialtyTrack', 'topic', 'publicationYear', 'latestUpdateDate', 'lastVerifiedDate', 'recommendations', 'evidenceCertainty', 'previousVersionSummary', 'changesSummary', 'sourceUrl', 'fullTextAvailable', 'protocolScope', 'doi', 'createdAt', 'updatedAt']) &&
+                       isValidGuidelineRecord(incoming());
+      allow update: if isValidId(recordId) &&
+                       isAdmin() &&
+                       isValidGuidelineRecord(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'organization', 'specialtyTrack', 'topic', 'publicationYear', 'latestUpdateDate', 'lastVerifiedDate', 'recommendations', 'evidenceCertainty', 'previousVersionSummary', 'changesSummary', 'sourceUrl', 'fullTextAvailable', 'protocolScope', 'doi', 'updatedAt']);
+      allow delete: if isValidId(recordId) && isAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'language', 'themeMode', 'subscribedTopics', 'pushEnabled', 'emailDigestEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'specialty', 'language', 'themeMode', 'subscribedTopics', 'pushEnabled', 'emailDigestEnabled', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming(), userId);
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'specialty', 'language', 'themeMode', 'subscribedTopics', 'pushEnabled', 'emailDigestEnabled', 'updatedAt']);
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      match /library/{articleId} {
+        allow get: if isValidId(articleId) && isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isValidId(articleId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'articleKey', 'title', 'saved', 'bookmarked', 'favorite', 'readingStatus', 'collectionIds', 'lastOpenedMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'articleKey', 'title', 'authors', 'journal', 'publicationDate', 'abstractText', 'doi', 'pmid', 'publicationType', 'sourceDatabase', 'publisherUrl', 'pdfUrl', 'openAccess', 'fullTextAvailable', 'preprint', 'retracted', 'saved', 'bookmarked', 'favorite', 'readingStatus', 'personalNotes', 'collectionIds', 'localPdfPath', 'lastOpenedMillis', 'createdAt', 'updatedAt']) &&
+                         isValidLibraryItem(incoming(), userId);
+        allow update: if isValidId(articleId) &&
+                         isOwner(userId) &&
+                         isValidLibraryItem(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['saved', 'bookmarked', 'favorite', 'readingStatus', 'personalNotes', 'collectionIds', 'localPdfPath', 'lastOpenedMillis', 'pdfUrl', 'openAccess', 'fullTextAvailable', 'updatedAt']);
+        allow delete: if isValidId(articleId) && isOwner(userId);
+      }
+
+      match /collections/{collectionId} {
+        allow get: if isValidId(collectionId) && isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isValidId(collectionId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'name', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'name', 'description', 'colorHex', 'createdAt', 'updatedAt']) &&
+                         isValidUserCollection(incoming(), userId);
+        allow update: if isValidId(collectionId) &&
+                         isOwner(userId) &&
+                         isValidUserCollection(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'colorHex', 'updatedAt']);
+        allow delete: if isValidId(collectionId) && isOwner(userId);
+      }
+
+      match /notifications/{notificationId} {
+        allow get: if isValidId(notificationId) && isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isValidId(notificationId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'body', 'notificationType', 'read', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'body', 'notificationType', 'articleKey', 'doi', 'read', 'createdAt', 'updatedAt']) &&
+                         isValidUserNotification(incoming(), userId);
+        allow update: if isValidId(notificationId) &&
+                         isOwner(userId) &&
+                         isValidUserNotification(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updatedAt']);
+        allow delete: if isValidId(notificationId) && isOwner(userId);
+      }
+
+      match /clinical_cases/{caseId} {
+        allow get: if isValidId(caseId) && isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isValidId(caseId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'caseTitle', 'preliminaryDiagnosis', 'specialtyTrack', 'safetyAlertLevel', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'caseTitle', 'preliminaryDiagnosis', 'specialtyTrack', 'demographicsSummary', 'vitalsSummary', 'respiratoryAbgSummary', 'labsSummary', 'imagingSummary', 'safetyAlertLevel', 'aiReportSummary', 'missingChecklistSummary', 'createdAt', 'updatedAt']) &&
+                         isValidClinicalCaseSession(incoming(), userId);
+        allow update: if isValidId(caseId) &&
+                         isOwner(userId) &&
+                         isValidClinicalCaseSession(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['caseTitle', 'preliminaryDiagnosis', 'specialtyTrack', 'demographicsSummary', 'vitalsSummary', 'respiratoryAbgSummary', 'labsSummary', 'imagingSummary', 'safetyAlertLevel', 'aiReportSummary', 'missingChecklistSummary', 'updatedAt']);
+        allow delete: if isValidId(caseId) && isOwner(userId);
+      }
+
+      match /saved_topics/{topicId} {
+        allow get: if isValidId(topicId) && isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isValidId(topicId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'topicName', 'specialtyTrack', 'bookmarked', 'lastViewedMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'topicName', 'specialtyTrack', 'bookmarked', 'lastViewedMillis', 'createdAt', 'updatedAt']) &&
+                         isValidSavedClinicalTopic(incoming(), userId);
+        allow update: if isValidId(topicId) &&
+                         isOwner(userId) &&
+                         isValidSavedClinicalTopic(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['bookmarked', 'lastViewedMillis', 'updatedAt']);
+        allow delete: if isValidId(topicId) && isOwner(userId);
+      }
+    }
+  }
+}

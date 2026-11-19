@@ -1,0 +1,302 @@
+{
+  "entities": {
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Authorized hospital administrator grant record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "role", "createdAt"]
+    },
+    "HospitalConfig": {
+      "title": "HospitalConfig",
+      "description": "Al-Anhar Specialized Hospital branding and research sync configuration.",
+      "type": "object",
+      "properties": {
+        "hospitalNameEn": { "type": "string" },
+        "hospitalNameAr": { "type": "string" },
+        "tagline": { "type": "string" },
+        "logoDataUri": { "type": "string" },
+        "updateFrequencyHours": { "type": "integer" },
+        "unpaywallEmail": { "type": "string" },
+        "enabledSources": { "type": "array" },
+        "updatedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["hospitalNameEn", "hospitalNameAr", "tagline", "updateFrequencyHours", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "ScientificCategory": {
+      "title": "ScientificCategory",
+      "description": "Hierarchical Respiratory Care or Critical Care discipline category.",
+      "type": "object",
+      "properties": {
+        "nameEn": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "parentTrack": { "type": "string", "enum": ["RESPIRATORY_CARE", "CRITICAL_CARE"] },
+        "description": { "type": "string" },
+        "searchQueryTerms": { "type": "string" },
+        "sortOrder": { "type": "integer" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nameEn", "nameAr", "parentTrack", "searchQueryTerms", "sortOrder", "active", "createdAt", "updatedAt"]
+    },
+    "EditorialPost": {
+      "title": "EditorialPost",
+      "description": "Hospital editorial announcement, highlight, or local protocol.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "titleAr": { "type": "string" },
+        "summary": { "type": "string" },
+        "body": { "type": "string" },
+        "specialty": { "type": "string" },
+        "contentType": { "type": "string", "enum": ["EDITORIAL_ANNOUNCEMENT", "RESEARCH_HIGHLIGHT", "CLINICAL_GUIDELINE_UPDATE", "LOCAL_HOSPITAL_PROTOCOL", "FEATURED_RESEARCH"] },
+        "authorName": { "type": "string" },
+        "hospitalProtocol": { "type": "boolean" },
+        "externalUrl": { "type": "string" },
+        "doi": { "type": "string" },
+        "publicationDate": { "type": "string" },
+        "verifiedDate": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "summary", "body", "specialty", "contentType", "authorName", "hospitalProtocol", "createdBy", "createdAt", "updatedAt"]
+    },
+    "MonitoredArticle": {
+      "title": "MonitoredArticle",
+      "description": "Admin-curated or featured indexed research publication metadata.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "authors": { "type": "string" },
+        "journal": { "type": "string" },
+        "publicationDate": { "type": "string" },
+        "abstractText": { "type": "string" },
+        "doi": { "type": "string" },
+        "pmid": { "type": "string" },
+        "publicationType": { "type": "string" },
+        "keywords": { "type": "array" },
+        "sourceDatabase": { "type": "string" },
+        "citationCount": { "type": "integer" },
+        "publisherUrl": { "type": "string" },
+        "openAccess": { "type": "boolean" },
+        "fullTextAvailable": { "type": "boolean" },
+        "pdfUrl": { "type": "string" },
+        "preprint": { "type": "boolean" },
+        "retracted": { "type": "boolean" },
+        "featured": { "type": "boolean" },
+        "specialtyTrack": { "type": "string" },
+        "categoryName": { "type": "string" },
+        "retrievedAt": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "authors", "journal", "publicationDate", "sourceDatabase", "openAccess", "fullTextAvailable", "preprint", "retracted", "featured", "specialtyTrack", "createdAt", "updatedAt"]
+    },
+    "GuidelineRecord": {
+      "title": "GuidelineRecord",
+      "description": "Tracked clinical guideline or medical protocol with revision history.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "organization": { "type": "string" },
+        "specialtyTrack": { "type": "string", "enum": ["RESPIRATORY_CARE", "CRITICAL_CARE"] },
+        "topic": { "type": "string" },
+        "publicationYear": { "type": "integer" },
+        "latestUpdateDate": { "type": "string" },
+        "lastVerifiedDate": { "type": "string" },
+        "recommendations": { "type": "string" },
+        "evidenceCertainty": { "type": "string" },
+        "previousVersionSummary": { "type": "string" },
+        "changesSummary": { "type": "string" },
+        "sourceUrl": { "type": "string" },
+        "fullTextAvailable": { "type": "boolean" },
+        "protocolScope": { "type": "string", "enum": ["INTERNATIONAL_GUIDELINE", "INSTITUTIONAL_PROTOCOL", "EDUCATIONAL_SUMMARY", "LOCAL_HOSPITAL_PROTOCOL"] },
+        "doi": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "organization", "specialtyTrack", "topic", "publicationYear", "latestUpdateDate", "lastVerifiedDate", "recommendations", "fullTextAvailable", "protocolScope", "createdAt", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated clinician/researcher profile and topic subscriptions.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "specialty": { "type": "string" },
+        "language": { "type": "string", "enum": ["en", "ar"] },
+        "themeMode": { "type": "string", "enum": ["system", "light", "dark"] },
+        "subscribedTopics": { "type": "array" },
+        "pushEnabled": { "type": "boolean" },
+        "emailDigestEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "language", "themeMode", "subscribedTopics", "pushEnabled", "emailDigestEnabled", "createdAt", "updatedAt"]
+    },
+    "LibraryItem": {
+      "title": "LibraryItem",
+      "description": "User-owned saved article, bookmark, favorite, reading status, notes, and local PDF record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "articleKey": { "type": "string" },
+        "title": { "type": "string" },
+        "authors": { "type": "string" },
+        "journal": { "type": "string" },
+        "publicationDate": { "type": "string" },
+        "abstractText": { "type": "string" },
+        "doi": { "type": "string" },
+        "pmid": { "type": "string" },
+        "publicationType": { "type": "string" },
+        "sourceDatabase": { "type": "string" },
+        "publisherUrl": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "openAccess": { "type": "boolean" },
+        "fullTextAvailable": { "type": "boolean" },
+        "preprint": { "type": "boolean" },
+        "retracted": { "type": "boolean" },
+        "saved": { "type": "boolean" },
+        "bookmarked": { "type": "boolean" },
+        "favorite": { "type": "boolean" },
+        "readingStatus": { "type": "string", "enum": ["UNREAD", "READING", "READ"] },
+        "personalNotes": { "type": "string" },
+        "collectionIds": { "type": "array" },
+        "localPdfPath": { "type": "string" },
+        "lastOpenedMillis": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "articleKey", "title", "saved", "bookmarked", "favorite", "readingStatus", "collectionIds", "lastOpenedMillis", "createdAt", "updatedAt"]
+    },
+    "UserCollection": {
+      "title": "UserCollection",
+      "description": "Personal folder in a user's research library.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "colorHex": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "createdAt", "updatedAt"]
+    },
+    "UserNotification": {
+      "title": "UserNotification",
+      "description": "Personalized research/guideline notification for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "notificationType": { "type": "string" },
+        "articleKey": { "type": "string" },
+        "doi": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "body", "notificationType", "read", "createdAt", "updatedAt"]
+    },
+    "ClinicalCaseSession": {
+      "title": "ClinicalCaseSession",
+      "description": "De-identified private clinical intelligence case analysis session (strictly owner-only, zero PII).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "caseTitle": { "type": "string" },
+        "preliminaryDiagnosis": { "type": "string" },
+        "specialtyTrack": { "type": "string" },
+        "demographicsSummary": { "type": "string" },
+        "vitalsSummary": { "type": "string" },
+        "respiratoryAbgSummary": { "type": "string" },
+        "labsSummary": { "type": "string" },
+        "imagingSummary": { "type": "string" },
+        "safetyAlertLevel": { "type": "string" },
+        "aiReportSummary": { "type": "string" },
+        "missingChecklistSummary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "caseTitle", "preliminaryDiagnosis", "specialtyTrack", "safetyAlertLevel", "createdAt", "updatedAt"]
+    },
+    "SavedClinicalTopic": {
+      "title": "SavedClinicalTopic",
+      "description": "Saved or recently viewed clinical diagnosis topic in Clinical Intelligence.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "topicName": { "type": "string" },
+        "specialtyTrack": { "type": "string" },
+        "bookmarked": { "type": "boolean" },
+        "lastViewedMillis": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "topicName", "specialtyTrack", "bookmarked", "lastViewedMillis", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Authorized hospital administrators"
+    },
+    "/hospital_config/{configId}": {
+      "schema": { "$ref": "#/entities/HospitalConfig" },
+      "description": "Al-Anhar Specialized Hospital branding and update configuration"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/ScientificCategory" },
+      "description": "Hierarchical Respiratory Care and Critical Care scientific disciplines"
+    },
+    "/editorial_posts/{postId}": {
+      "schema": { "$ref": "#/entities/EditorialPost" },
+      "description": "Editorial announcements, highlights, and local hospital protocols"
+    },
+    "/monitored_articles/{articleId}": {
+      "schema": { "$ref": "#/entities/MonitoredArticle" },
+      "description": "Featured and curated international scientific research articles"
+    },
+    "/guideline_records/{recordId}": {
+      "schema": { "$ref": "#/entities/GuidelineRecord" },
+      "description": "Tracked international guidelines and hospital protocols with revision metadata"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile, language/theme preferences, and subscribed research topics"
+    },
+    "/users/{userId}/library/{articleId}": {
+      "schema": { "$ref": "#/entities/LibraryItem" },
+      "description": "User's personal research library, bookmarks, favorites, reading progress, and notes"
+    },
+    "/users/{userId}/collections/{collectionId}": {
+      "schema": { "$ref": "#/entities/UserCollection" },
+      "description": "User's personal research collection folders"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/UserNotification" },
+      "description": "User's personalized research and guideline notifications"
+    },
+    "/users/{userId}/clinical_cases/{caseId}": {
+      "schema": { "$ref": "#/entities/ClinicalCaseSession" },
+      "description": "Private de-identified clinical intelligence case sessions"
+    },
+    "/users/{userId}/saved_topics/{topicId}": {
+      "schema": { "$ref": "#/entities/SavedClinicalTopic" },
+      "description": "User's saved and recently viewed clinical intelligence topics"
+    }
+  }
+}

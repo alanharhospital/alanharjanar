@@ -1,0 +1,6 @@
+{
+  "name": "Al-Anhar Journal",
+  "description": "Digital scientific journal and respiratory & critical care research platform for Al-Anhar Specialized Hospital, featuring multi-database discovery, personal research libraries, automated updates, and Gemini AI paper analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
